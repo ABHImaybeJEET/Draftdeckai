@@ -162,21 +162,32 @@ export async function POST(request: NextRequest) {
       content: letterContent.content ? sanitizeHtml(letterContent.content) : '',
     };
 
-    // Create reusable transporter object safely avoiding unnecessary network calls
+    const hasFullSmtpConfig =
+      !!process.env.EMAIL_HOST && !!process.env.EMAIL_USER && !!process.env.EMAIL_PASS;
+    const hasPartialSmtpConfig =
+      !!process.env.EMAIL_HOST || !!process.env.EMAIL_USER || !!process.env.EMAIL_PASS;
+
+    if (hasPartialSmtpConfig && !hasFullSmtpConfig) {
+      throw new Error('EMAIL_HOST, EMAIL_USER, and EMAIL_PASS must be configured together');
+    }
+
+    let smtpHost = process.env.EMAIL_HOST ?? 'smtp.ethereal.email';
     let smtpUser = process.env.EMAIL_USER;
     let smtpPass = process.env.EMAIL_PASS;
 
-    // Only fetch Ethereal test account if production credentials are not provided
-    if (!process.env.EMAIL_HOST || !smtpUser || !smtpPass) {
+    if (!hasFullSmtpConfig) {
       const testAccount = await nodemailer.createTestAccount();
-      if (!smtpUser) smtpUser = testAccount.user;
-      if (!smtpPass) smtpPass = testAccount.pass;
+      smtpHost = 'smtp.ethereal.email';
+      smtpUser = testAccount.user;
+      smtpPass = testAccount.pass;
     }
 
+    const smtpPort = Number(process.env.EMAIL_PORT ?? '587');
+
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.ethereal.email',
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: false, // true for 465, false for other ports
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
       auth: {
         user: smtpUser,
         pass: smtpPass,
@@ -220,8 +231,9 @@ export async function POST(request: NextRequest) {
     const info = await transporter.sendMail({
       from: {
         name: sanitizedFromName || '',
-        address: sanitizedFromEmail || process.env.EMAIL_FROM || 'noreply@draftdeckai.com',
+        address: process.env.EMAIL_FROM || 'noreply@draftdeckai.com',
       },
+      replyTo: sanitizedFromEmail || undefined,
       to,
       subject: sanitizedSubject,
       html: `${formattedContent}${personalMessageHtml}`,
@@ -229,7 +241,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Get the Ethereal URL for viewing the test email (only for Ethereal emails)
-    const previewUrl = process.env.EMAIL_HOST ? null : nodemailer.getTestMessageUrl(info);
+    const previewUrl = hasFullSmtpConfig ? null : nodemailer.getTestMessageUrl(info);
 
     // Log successful email dispatch internally
     logSecurityEvent('EMAIL_SENT_SUCCESSFULLY', { userId: user.id, messageId: info.messageId, to, ip }, ip);
