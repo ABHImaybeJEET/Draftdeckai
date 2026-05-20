@@ -452,6 +452,32 @@ export const Button: React.FC<ButtonProps> = ({
 };
 ```
 
+### 🗂️ **Repository Hygiene**
+
+> **⚠️ Do not commit backup, temporary, or stale artifacts to the repository.**
+
+The repository should remain clean of non-canonical files. This helps reduce maintenance burden and ensures that new contributors aren't confused by stale artifacts.
+
+Guidelines:
+- **Avoid Route Backups**: Instead of keeping `page-old.tsx` or `layout.backup.tsx` in the `app/` directory, use Git's version history to retrieve older versions.
+- **Clean Temp Files**: Avoid committing files with suffixes like `.bak`, `.tmp`, or `-restored`.
+- **Active Source Only**: Ensure that only functional components and pages are tracked in the `app/` and `components/` directories.
+
+```bash
+# ❌ Avoid committing these patterns
+*.bak
+*.tmp
+component.old.tsx
+debug.log
+
+# ✅ Only canonical source files
+page.tsx
+layout.tsx
+component.tsx
+```
+
+If you need to preserve work-in-progress locally, use `git stash` or keep drafts in a personal branch — not in the active source tree.
+
 ### ✅ **Code Quality Checks**
 
 Before submitting any PR, ensure:

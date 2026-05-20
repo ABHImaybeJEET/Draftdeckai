@@ -190,6 +190,27 @@ npm run lint     # Run ESLint
 ```
 
 ---
+## 💬 Community and Support
+
+Join our official WhatsApp group to connect with other contributors, get help with your PRs, or discuss project ideas: 
+[![WhatsApp Group](https://img.shields.io/badge/WhatsApp-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://chat.whatsapp.com/JblK45aOdv9Ao0YhnMcPcQ)
+
+---
+
+## 👥 Contributors
+
+We appreciate all contributors who help improve DraftDeckAI ❤️
+
+### 📊 All Contributors
+https://github.com/Muneerali199/Draftdeckai/graphs/contributors
+
+### 🎨 Visual Contributors
+
+<a href="https://github.com/Muneerali199/Draftdeckai/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Muneerali199/Draftdeckai" />
+</a>
+
+---
 
 ## 🤝 Contributing
 

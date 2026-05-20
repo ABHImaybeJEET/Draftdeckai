@@ -403,12 +403,12 @@ export function SiteHeader() {
             ) : (
               /* Desktop Sign In Button */
               <TooltipWithShortcut content="Sign in to save and manage your documents">
-                <Link href="/auth/signin">
-                  <Button className="bolt-gradient text-white font-semibold hover:scale-105 transition-all duration-300 text-sm px-4 h-9 hidden md:flex">
+                <Button asChild className="bolt-gradient text-white font-semibold hover:scale-105 transition-all duration-300 text-sm px-4 h-9 hidden md:flex">
+                  <Link href="/auth/signin" className="flex items-center gap-2">
                     <Zap className="h-4 w-4" />
                     <span>Sign In</span>
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </TooltipWithShortcut>
             )}
           </div>
@@ -437,6 +437,12 @@ const navItems = [
     label: "Presentation",
     icon: <LayoutPresentation className="h-4 w-4" />,
     tooltip: "Generate stunning slide presentations instantly",
+  },
+  {
+    href: "/documents",
+    label: "Documents",
+    icon: <Sparkles className="h-4 w-4" />,
+    tooltip: "Generate structured documents with AI",
   },
   {
     href: "/letter",
