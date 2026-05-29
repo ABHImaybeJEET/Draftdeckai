@@ -16,6 +16,7 @@ import {
 } from '@/types/documents';
 import { getBlueprint, getDefaultTone } from './blueprints';
 import { extractVisualTags, parseMermaidFromResponse, createVisualTagFromMermaid, ParsedVisual } from './visual-tagging';
+import { SemanticCompressionPipeline } from '@/lib/semantic-compression';
 
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || '';
 const MISTRAL_API_URL = 'https://api.mistral.ai/v1/chat/completions';
@@ -141,6 +142,9 @@ export async function generateDocument(options: GenerationOptions): Promise<Gene
   // Build context string
   const contextString = buildContextString(contextFiles);
   
+  // Initialize semantic compression pipeline for long-document consistency
+  const compressionPipeline = new SemanticCompressionPipeline(3, 2000);
+  
   // Generate each section
   const sections: DocumentSection[] = [];
   const citations: Citation[] = [];
@@ -152,6 +156,7 @@ export async function generateDocument(options: GenerationOptions): Promise<Gene
       contextString,
       tone,
       contextFiles,
+      compressionPipeline,
     });
     
     sections.push(section);
@@ -159,6 +164,18 @@ export async function generateDocument(options: GenerationOptions): Promise<Gene
     // Extract citations from section content
     const sectionCitations = extractCitations(section.content, contextFiles);
     citations.push(...sectionCitations);
+    
+    // Process section through compression pipeline for consistency tracking
+    try {
+      await compressionPipeline.processSectionGeneration(
+        blueprintSection.title,
+        section.content,
+        section.id
+      );
+    } catch (error) {
+      // Log pipeline errors but don't fail document generation
+      console.warn(`Semantic compression pipeline error for section ${blueprintSection.id}:`, error);
+    }
   }
   
   return {
@@ -189,13 +206,14 @@ interface GenerateSectionOptions {
   contextString: string;
   tone: DocumentTone;
   contextFiles: ContextFile[];
+  compressionPipeline?: SemanticCompressionPipeline;
 }
 
 /**
  * Generate a single document section
  */
 async function generateSection(options: GenerateSectionOptions): Promise<DocumentSection> {
-  const { blueprintSection, input, contextString, tone, contextFiles } = options;
+  const { blueprintSection, input, contextString, tone, contextFiles, compressionPipeline } = options;
   
   // Replace template variables
   let prompt = blueprintSection.promptTemplate
@@ -209,6 +227,18 @@ async function generateSection(options: GenerateSectionOptions): Promise<Documen
   
   // Add tone-specific instructions
   prompt += getToneInstructions(tone);
+  
+  // Add semantic consistency prompt if compression pipeline is available
+  if (compressionPipeline && blueprintSection.order > 1) {
+    try {
+      const contextWindow = compressionPipeline.getContextWindow();
+      const consistencyPrompt = `\n\nCONSISTENCY REQUIREMENTS FOR LONG-DOCUMENT GENERATION:\n${contextWindow.contextString}`;
+      prompt += consistencyPrompt;
+    } catch (error) {
+      // Silently skip consistency prompt if pipeline not ready
+      console.debug('Compression pipeline not ready for consistency prompt');
+    }
+  }
   
   try {
     const content = await callMistral(prompt, 'mistral-large-latest');
